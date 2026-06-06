@@ -1,0 +1,71 @@
+import Message from "../models/Message.js";
+import Conversation from "../models/Conversation.js";
+
+
+export const sendMessage = async (req, res) => {
+  try {
+    const { conversationId, senderId, content } = req.body;
+
+    // Validate conversation exists
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({
+        message: "Conversation not found",
+      });
+    }
+
+    const message = await Message.create({
+      conversationId,
+      senderId,
+      content,
+    });
+
+    conversation.lastMessage = message._id;
+
+    await conversation.save();
+
+    res.status(201).json(message);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getMessages = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    const messages = await Message.find({
+      conversationId,
+    })
+      .populate("senderId", "username")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const totalMessages = await Message.countDocuments({
+      conversationId,
+    });
+
+    res.json({
+      page,
+      limit,
+      totalMessages,
+      totalPages: Math.ceil(
+        totalMessages / limit
+      ),
+      messages,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
