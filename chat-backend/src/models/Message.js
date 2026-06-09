@@ -29,12 +29,12 @@ const messageSchema = new mongoose.Schema(
     }
 );
 
-export default mongoose.model(
-    "Message",
-    messageSchema
-);
-
 messageSchema.index({
     conversationId:1,
     createdAt:-1,
 });
+
+export default mongoose.model(
+    "Message",
+    messageSchema
+);

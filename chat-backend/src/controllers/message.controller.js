@@ -21,6 +21,8 @@ export const sendMessage = async (req, res) => {
       content,
     });
 
+    await message.populate("senderId", "username");
+
     conversation.lastMessage = message._id;
 
     await conversation.save();
@@ -41,6 +43,7 @@ export const getMessages = async (req, res) => {
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
+
 
     const messages = await Message.find({
       conversationId,
@@ -68,4 +71,39 @@ export const getMessages = async (req, res) => {
       message: error.message,
     });
   }
+};
+
+export const getMessagesCursor = async(req,res) => {
+  try {
+    const {conversationId} = req.params;
+    const {cursor} = req.query;
+
+    const query = {
+      conversationId,
+    };
+
+    if (cursor){
+      query.createdAt ={
+        $lt: new Date(cursor),
+      };
+    }
+    const messages = await Message.find(query)
+      .populate("senderId", "username")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    const nextCursor =
+      messages.length > 0
+        ? messages[messages.length - 1].createdAt
+        : null; 
+
+    res.json({
+      messages,
+      nextCursor,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }  
 };
