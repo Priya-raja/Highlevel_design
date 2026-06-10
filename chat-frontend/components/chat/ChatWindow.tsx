@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
 import { Conversation } from "@/types/conversation";
 import { Message } from "@/types/message";
@@ -14,8 +14,7 @@ const CURRENT_USER_ID = "6a246cdd03c488976ac9470f";
 
 export default function ChatWindow({conversation,}: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
-  
-
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   
 
   useEffect(() => {
@@ -27,7 +26,10 @@ export default function ChatWindow({conversation,}: Props) {
         `/messages/${conversation?._id}`
       );
 
-      setMessages(data.messages || data);
+      const messagesData = data.messages || data;
+
+      setMessages(messagesData.reverse());
+
     } catch (error) {
       console.error(error);
     }
@@ -35,17 +37,29 @@ export default function ChatWindow({conversation,}: Props) {
 fetchMessages()
   }, [conversation]);
 
-  const handleSendMessage = async (content: string) => {
-    if (!conversation) return;
+  useEffect(() =>{
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
+
+  const sendMessage = async (content: string) => {
+    try {
+      if (!conversation) return;
 
     const { data } = await api.post("/messages", {
-      conversationId: conversation._id,
+      conversationId: conversation?._id,
       senderId: CURRENT_USER_ID,
       content,
     });
 
-    setMessages((currentMessages) => [data, ...currentMessages]);
-  };
+    setMessages((prev) => [...prev, data]);
+
+  } catch (error) { 
+     console.error("Failed to send message", error);
+  }
+
+};
 
   
   if (!conversation){
@@ -64,25 +78,41 @@ return (
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.map((message) => (
+        {messages.map((message) => {
+
+           const isMine = message.senderId._id === CURRENT_USER_ID;
+           return (
           <div
             key={message._id}
-            className="mb-4"
+            className= {`mb-3 flex ${
+              isMine ? "justify-end" : "justify-start"
+              }`}
           >
-            <div className="font-semibold text-sm">
-              {message.senderId.username}
-            </div>
+            <div 
+              className={`max-w-xs rounded-lg px-3 py-2 ${
+          isMine
+            ? "bg-green-500 text-white"
+            : "bg-gray-200 text-black"
+           }`}
+            >
+              <p className="text-xs opacity-80">
+               {message.senderId.username}
+             </p>
+            
 
-            <div>
-              {message.content}
+            
+              <p> {message.content} </p>
             </div>
           </div>
-        ))}
+        );
+       })}
+       <div ref={bottomRef}></div>
+
       </div>
 
       <MessageInput
-        disabled={!conversation}
-        onSend={handleSendMessage}
+       
+        onSend={sendMessage}
       />
     </div>
   );

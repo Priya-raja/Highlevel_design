@@ -16,6 +16,7 @@ export default function ConversationList({selectedConversation,
   {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
+  const currentUserId = "6a246cdd03c488976ac9470f"
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -50,9 +51,9 @@ export default function ConversationList({selectedConversation,
               : ""
           }`}
         >
-          {conversation.participants
-            .map((p) => p.username)
-            .join(", ")}
+          {conversation.participants.find(
+            (p) => p._id !== currentUserId
+          )?.username }
         </div>
       ))}
     </div>
