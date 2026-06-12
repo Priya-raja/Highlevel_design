@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth.store";
 import { Conversation } from "@/types/conversation";
 
 interface Props {
@@ -15,15 +16,15 @@ export default function ConversationList({selectedConversation,
   setSelectedConversation,} : Props) 
   {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const user = useAuthStore((state) => state.user);
 
-  const currentUserId = "6a246cdd03c488976ac9470f"
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const userId = "6a246cdd03c488976ac9470f";
+        if (!user) return;
 
         const { data } = await api.get(
-          `/conversations/user/${userId}`
+          `/conversations/user/${user._id}`
         );
 
         setConversations(data);
@@ -33,7 +34,7 @@ export default function ConversationList({selectedConversation,
     };
 
     fetchConversations();
-  }, []);
+  }, [user]);
 
   return (
     <div>
@@ -52,7 +53,7 @@ export default function ConversationList({selectedConversation,
           }`}
         >
           {conversation.participants.find(
-            (p) => p._id !== currentUserId
+            (p) => p._id !== user?._id
           )?.username }
         </div>
       ))}

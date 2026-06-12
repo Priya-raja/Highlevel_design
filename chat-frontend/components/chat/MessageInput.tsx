@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 interface Props {
-  onSend: (content: string) => void;
+  onSend: (content: string) => void | Promise<void>;
 }
 
 export default function MessageInput({

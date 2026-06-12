@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth.store";
 import { Conversation } from "@/types/conversation";
 import { Message } from "@/types/message";
 import MessageInput from "./MessageInput";
@@ -10,33 +11,38 @@ interface Props {
   conversation: Conversation | null;
 }
 
-const CURRENT_USER_ID = "6a246cdd03c488976ac9470f";
-
 export default function ChatWindow({conversation,}: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const user = useAuthStore((state) => state.user);
   
 
-  useEffect(() => {
-    if (!conversation) return;
+  const fetchMessages = async (conversationId: string) => {
+  try {
+    const { data } = await api.get(
+      `/messages/cursor/${conversationId}`
+    );
 
-    const fetchMessages = async () => {
-    try {
-      const { data } = await api.get(
-        `/messages/${conversation?._id}`
-      );
+    setMessages(data.messages.reverse());
 
-      const messagesData = data.messages || data;
+  } catch (error) {
+    console.error(error);
+  }
+};
 
-      setMessages(messagesData.reverse());
 
-    } catch (error) {
-      console.error(error);
-    }
+useEffect(() => {
+  if (!conversation) return;
+
+  const load = async () => {
+    await fetchMessages(conversation._id);
   };
-fetchMessages()
-  }, [conversation]);
 
+  load();
+}, [conversation]);
+ 
+
+  //For smooth scrolling after entering new message. No need to click on the arrow btn
   useEffect(() =>{
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -46,10 +52,11 @@ fetchMessages()
   const sendMessage = async (content: string) => {
     try {
       if (!conversation) return;
+      if (!user) return;
 
     const { data } = await api.post("/messages", {
       conversationId: conversation?._id,
-      senderId: CURRENT_USER_ID,
+      senderId: user._id,
       content,
     });
 
@@ -79,8 +86,7 @@ return (
 
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((message) => {
-
-           const isMine = message.senderId._id === CURRENT_USER_ID;
+           const isMine = message.senderId._id === user?._id;
            return (
           <div
             key={message._id}
