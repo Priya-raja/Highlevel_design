@@ -1,60 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth.store";
+import { User } from "@/types/user";
+import { getUsers } from "@/services/user.service";
 import { Conversation } from "@/types/conversation";
+import { createOrGetDirectConversation } from "@/services/conversation.service";
 
 interface Props {
   selectedConversation: Conversation | null;
-  setSelectedConversation: (
-    conversation: Conversation
-  ) => void;
+  setSelectedConversation: (conversation: Conversation) => void;
 }
 
-export default function ConversationList({selectedConversation,
-  setSelectedConversation,} : Props) 
-  {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const user = useAuthStore((state) => state.user);
+export default function ConversationList({
+  selectedConversation,
+  setSelectedConversation,
+}: Props) {
+  const [users, setUsers] = useState<User[]>([]);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchUsers = async () => {
       try {
-        if (!user) return;
+        if (!currentUser || !token) return;
 
-        const { data } = await api.get(
-          `/conversations/user/${user._id}`
-        );
-
-        setConversations(data);
+        const users = await getUsers(token);
+        setUsers(users);
       } catch (error) {
         console.error(error);
       }
     };
 
-    fetchConversations();
-  }, [user]);
+    fetchUsers();
+  }, [currentUser, token]);
+
+  const handleUserClick = async (selectedUser: User) => {
+    if (!currentUser) return;
+
+    const conversation = await createOrGetDirectConversation([
+      currentUser._id,
+      selectedUser._id,
+    ]);
+
+    setSelectedConversation(conversation);
+  };
 
   return (
     <div>
       <div className="p-4 border-b">
-        <h1 className="font-bold text-xl">Chats</h1>
+        <h1 className="font-bold text-xl">Users</h1>
       </div>
 
-      {conversations.map((conversation) => (
+      {users.map((user) => (
         <div
-          key={conversation._id}
-          onClick={() => setSelectedConversation(conversation)}
-          className={`cursor-pointer border-b p-4 hover:bg-gray-200 dark:hover:bg-gray-700 ${
-            selectedConversation?._id === conversation._id
-              ? "bg-gray-200 dark:bg-gray-700"
-              : ""
-          }`}
+          key={user._id}
+          onClick={() => handleUserClick(user)}
+          className="cursor-pointer border-b p-4 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
-          {conversation.participants.find(
-            (p) => p._id !== user?._id
-          )?.username }
+          {user.username}
         </div>
       ))}
     </div>

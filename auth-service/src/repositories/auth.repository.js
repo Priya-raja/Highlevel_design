@@ -18,3 +18,9 @@ export const findUserByUsernameOrEmail = async ({ username, email }) => {
 export const findPublicUserById = async (userId) => {
   return User.findById(userId).select("-password");
 };
+
+export const findAllUsersExcept = async (userId) => {
+  return User.find({
+    _id: {$ne:userId},
+  }).select("-password");
+};

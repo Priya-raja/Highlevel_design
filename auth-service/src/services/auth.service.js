@@ -3,7 +3,8 @@ import jwt from "jsonwebtoken";
 import {
   createUser,
   findPublicUserById,
-   findUserByUsernameOrEmail,
+  findUserByUsernameOrEmail,
+  findAllUsersExcept,
   findUserByEmail,
 } from "../repositories/auth.repository.js";
 
@@ -61,7 +62,7 @@ if (existingUser) {
   throw error;
 }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+ const hashedPassword = await bcrypt.hash(password, 12);
 const user = await createUser({
   username: normalizedUsername,
   email: normalizedEmail,
@@ -117,4 +118,8 @@ export const getAuthenticatedUser = async (userId) => {
   }
 
   return toPublicUser(user);
+};
+
+export const getUsersExceptCurrentUser = async (currentUserId) => {
+  return findAllUsersExcept(currentUserId);
 };

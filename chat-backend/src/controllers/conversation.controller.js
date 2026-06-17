@@ -36,3 +36,36 @@ export const getUserConversations = async (req, res) => {
     });
   }
 };
+
+export const createOrGetDirectConversation = async(req,res) =>{
+  try {
+    const {participantIds} = req.body;
+    if(  !participantIds || participantIds.length !== 2)
+      {
+        return res.status(400).json({
+        message: "Exactly 2 participants required",
+      });
+    }
+
+    let conversation = await Conversation.findOne({
+      isGroup: false,
+      participants: {
+        $all: participantIds,
+      },
+    });
+
+    if (conversation) {
+      return res.status(200).json(conversation);
+    }
+      conversation = await Conversation.create({
+      participants: participantIds,
+      isGroup: false,
+    });
+    return res.status(201).json(conversation);
+
+  }catch (error) {
+   return res.status(500).json({
+      message: error.message,
+    });
+  }
+}
