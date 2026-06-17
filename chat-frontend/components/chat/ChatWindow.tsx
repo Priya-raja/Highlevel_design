@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { Conversation } from "@/types/conversation";
 import { Message } from "@/types/message";
 import MessageInput from "./MessageInput";
-
+import { socket } from "@/lib/socket";
 interface Props {
   conversation: Conversation | null;
 }
@@ -30,6 +30,21 @@ export default function ChatWindow({conversation,}: Props) {
   }
 };
 
+useEffect(() => {
+  socket.on(
+    "new-message",
+    (message) => {
+      setMessages((prev) => [
+        ...prev,
+        message,
+      ]);
+    }
+  );
+
+  return () => {
+    socket.off("new-message");
+  };
+}, []);
 
 useEffect(() => {
   if (!conversation) return;
@@ -49,14 +64,18 @@ useEffect(() => {
     });
   }, [messages]);
 
+  
+
   const sendMessage = async (content: string) => {
     try {
       if (!conversation) return;
       if (!user) return;
 
+      const receiverId = conversation.participants.find((id) => id !== user._id);
     const { data } = await api.post("/messages", {
       conversationId: conversation?._id,
       senderId: user._id,
+      receiverId,
       content,
     });
 

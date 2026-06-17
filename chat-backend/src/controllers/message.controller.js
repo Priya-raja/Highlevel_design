@@ -4,9 +4,8 @@ import Conversation from "../models/Conversation.js";
 
 export const sendMessage = async (req, res) => {
   try {
-    const { conversationId, senderId, content } = req.body;
+    const { conversationId, senderId, content, receiverId } = req.body;
 
-    // Validate conversation exists
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
@@ -24,8 +23,13 @@ export const sendMessage = async (req, res) => {
     await message.populate("senderId", "username");
 
     conversation.lastMessage = message._id;
-
     await conversation.save();
+
+    const io = req.app.get("io");
+
+    if (receiverId) {
+      io.to(receiverId).emit("new-message", message);
+    }
 
     res.status(201).json(message);
   } catch (error) {

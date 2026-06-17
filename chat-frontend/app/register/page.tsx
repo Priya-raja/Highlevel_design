@@ -48,7 +48,7 @@ export default function RegisterPage() {
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="Username"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-900"
             required
           />
 
@@ -57,7 +57,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Email"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none text-black focus:border-zinc-900"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-900"
             required
           />
 
@@ -66,7 +66,7 @@ export default function RegisterPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none text-black focus:border-zinc-900"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-900"
             required
           />
         </div>

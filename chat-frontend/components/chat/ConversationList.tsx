@@ -1,67 +1,102 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/auth.store";
-import { User } from "@/types/user";
-import { getUsers } from "@/services/user.service";
-import { Conversation } from "@/types/conversation";
 import { createOrGetDirectConversation } from "@/services/conversation.service";
+import { getUsers } from "@/services/user.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { Conversation } from "@/types/conversation";
+import { User } from "@/types/user";
 
 interface Props {
   selectedConversation: Conversation | null;
-  setSelectedConversation: (conversation: Conversation) => void;
+  setSelectedConversation: (conversation: Conversation | null) => void;
 }
 
 export default function ConversationList({
   selectedConversation,
   setSelectedConversation,
 }: Props) {
-  const [users, setUsers] = useState<User[]>([]);
-
   const currentUser = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        if (!currentUser || !token) return;
+    const loadUsers = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
 
-        const users = await getUsers(token);
-        setUsers(users);
+      try {
+        setError("");
+        setIsLoading(true);
+        const fetchedUsers = await getUsers(token);
+        setUsers(fetchedUsers);
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load users", error);
+        setError("Unable to load users");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchUsers();
-  }, [currentUser, token]);
+    loadUsers();
+  }, [token]);
 
-  const handleUserClick = async (selectedUser: User) => {
+  const handleUserClick = async (user: User) => {
     if (!currentUser) return;
 
-    const conversation = await createOrGetDirectConversation([
-      currentUser._id,
-      selectedUser._id,
-    ]);
-
-    setSelectedConversation(conversation);
+    try {
+      setError("");
+      const conversation = await createOrGetDirectConversation([
+        currentUser._id,
+        user._id,
+      ]);
+      setSelectedConversation(conversation);
+    } catch (error) {
+      console.error("Failed to open conversation", error);
+      setError("Unable to open conversation");
+    }
   };
 
   return (
-    <div>
-      <div className="p-4 border-b">
-        <h1 className="font-bold text-xl">Users</h1>
+    <div className="flex h-full flex-col bg-white text-zinc-950">
+      <div className="border-b border-zinc-200 p-4">
+        <h2 className="font-semibold">Users</h2>
       </div>
 
-      {users.map((user) => (
-        <div
-          key={user._id}
-          onClick={() => handleUserClick(user)}
-          className="cursor-pointer border-b p-4 hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
-          {user.username}
-        </div>
-      ))}
+      {error && <p className="px-4 py-3 text-sm text-red-600">{error}</p>}
+
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <p className="px-4 py-3 text-sm text-zinc-500">Loading users...</p>
+        ) : users.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-zinc-500">
+            No other users found.
+          </p>
+        ) : (
+          users.map((user) => {
+            const isSelected =
+              selectedConversation?.participants.includes(user._id) ?? false;
+
+            return (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => handleUserClick(user)}
+                className={`block w-full border-b border-zinc-100 px-4 py-3 text-left transition hover:bg-zinc-50 ${
+                  isSelected ? "bg-zinc-100" : "bg-white"
+                }`}
+              >
+                <p className="font-medium text-zinc-950">{user.username}</p>
+                <p className="text-sm text-zinc-500">{user.email}</p>
+              </button>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

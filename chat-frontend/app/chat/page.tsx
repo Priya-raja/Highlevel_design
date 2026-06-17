@@ -1,35 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { socket } from "@/lib/socket";
 import { useAuthStore } from "@/stores/auth.store";
+import { useConversationStore } from "@/stores/conversation.store";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
-import { Conversation } from "@/types/conversation";
 
 export default function ChatPage() {
   const router = useRouter();
 
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
 
-  const [hydrated, setHydrated] = useState(false);
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(null);
+  const selectedConversation = useConversationStore(
+    (state) => state.selectedConversation
+  );
+
+  const setSelectedConversation = useConversationStore(
+    (state) => state.setSelectedConversation
+  );
 
   useEffect(() => {
-    setHydrated(true);
-  }, []);
+    if (!user) return;
+    socket.connect();
+
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+      socket.emit("join-user", user._id);
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.disconnect();
+    };
+  }, [user]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hasHydrated) return;
 
     if (!user || !token) {
       router.push("/login");
     }
-  }, [hydrated, user, token, router]);
+  }, [hasHydrated, user, token, router]);
 
-  if (!hydrated) {
+  if (!hasHydrated) {
     return <div>Loading...</div>;
   }
 

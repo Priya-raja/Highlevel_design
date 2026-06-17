@@ -3,7 +3,7 @@ import { User } from "./user";
 
 export interface Conversation{
     _id: string;
-    participants: User[];
+    participants: string[];
     isGroup: boolean;
     groupName?: string;
     lastMessage?: Message;
